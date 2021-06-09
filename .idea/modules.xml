@@ -2,7 +2,7 @@
 <project version="4">
   <component name="ProjectModuleManager">
     <modules>
-      <module fileurl="file://$PROJECT_DIR$/../modoowiki/.idea/modoowiki.iml" filepath="$PROJECT_DIR$/../modoowiki/.idea/modoowiki.iml" />
+      <module fileurl="file://$PROJECT_DIR$/.idea/modoowiki.iml" filepath="$PROJECT_DIR$/.idea/modoowiki.iml" />
     </modules>
   </component>
 </project>

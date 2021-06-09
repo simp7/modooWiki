@@ -1,0 +1,10 @@
+{
+    "address": "localhost",
+    "port": 27017,
+    "name": "wiki",
+    "pageCollection": {
+        "name": "page",
+        "title": "_id",
+        "body": "content"
+    }
+}
