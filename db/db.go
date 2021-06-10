@@ -5,8 +5,8 @@ import (
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
-	"simpleWiki/model"
-	"simpleWiki/model/config"
+	"modoowiki/model"
+	"modoowiki/model/config"
 	"time"
 )
 

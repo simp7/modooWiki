@@ -1,6 +1,6 @@
 package main
 
-import "simpleWiki/model"
+import "modoowiki/model"
 
 type DB interface {
 	Close()

@@ -1,10 +1,11 @@
 package main
 
 import (
+	"github.com/kataras/golog"
 	"github.com/kataras/iris/v12"
 	"github.com/kataras/iris/v12/context"
-	"simpleWiki/db"
-	"simpleWiki/model/config"
+	"modoowiki/db"
+	"modoowiki/model/config"
 )
 
 type wiki struct {
@@ -22,6 +23,7 @@ func Init(conf config.Config) (w *wiki, err error) {
 		return
 	}
 
+	w.Logger().Level = golog.DebugLevel
 	w.Web = conf.Web
 	w.Application = iris.New()
 
@@ -31,7 +33,7 @@ func Init(conf config.Config) (w *wiki, err error) {
 
 func (w *wiki) Start() error {
 	w.Get("/page/{key}", w.GetPage)
-	w.Post("/page/{key}", w.PostPage)
+	w.Put("/page/{key}", w.PutPage)
 	return w.Listen(w.Path())
 }
 
@@ -60,7 +62,7 @@ func (w *wiki) GetPage(ctx context.Context) {
 
 }
 
-func (w *wiki) PostPage(ctx context.Context) {
+func (w *wiki) PutPage(ctx context.Context) {
 
 	w.CommonLog(ctx)
 	key := ctx.Params().Get("key")
@@ -76,8 +78,4 @@ func (w *wiki) PostPage(ctx context.Context) {
 func (w *wiki) InitPage(key string, content string) (err error) {
 	err = w.db.InitPage(key, content)
 	return
-}
-
-func (w *wiki) SetContent(key string, content string) {
-	w.db.SetContent(key, content)
 }

@@ -1,4 +1,4 @@
-package model
+package config
 
 type PageCollection struct {
 	Name  string `json:"name"`

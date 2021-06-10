@@ -5,14 +5,13 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
-	"simpleWiki/model"
 )
 
 type DB struct {
-	Address              string `json:"address"`
-	Port                 int    `json:"port"`
-	Name                 string `json:"name"`
-	model.PageCollection `json:"pageCollection"`
+	Address        string `json:"address"`
+	Port           int    `json:"port"`
+	Name           string `json:"name"`
+	PageCollection `json:"pageCollection"`
 }
 
 func getDB() (DB, error) {
