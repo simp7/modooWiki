@@ -2,6 +2,7 @@ package db
 
 import (
 	"context"
+	"github.com/kataras/golog"
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
@@ -15,62 +16,71 @@ type db struct {
 	*mongo.Database
 	page *mongo.Collection
 	end  chan struct{}
+	*golog.Logger
 }
 
-func New(conf config.DB) (*db, error) {
+func New(conf config.DB, level golog.Level) (*db, error) {
 
-	w := new(db)
-	w.DB = conf
+	d := new(db)
+	d.DB = conf
 
-	w.end = make(chan struct{})
+	d.Logger = golog.New()
+	d.Logger.Level = level
+
+	d.end = make(chan struct{})
 
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
 
-	client, err := mongo.Connect(ctx, options.Client().ApplyURI(w.DB.Path()))
+	client, err := mongo.Connect(ctx, options.Client().ApplyURI(d.DB.Path()))
 	if err == nil {
-		w.Database = client.Database(w.DB.Name)
-		w.page = w.Collection(w.PageCollection.Name)
+		d.Database = client.Database(d.DB.Name)
+		d.page = d.Collection(d.PageCollection.Name)
+		d.Info("Finish initializing DB")
 	}
 
-	go func() {
-		for {
-			select {
-			case <-w.end:
-				if err = client.Disconnect(ctx); err != nil {
-					panic(err)
-				}
-			}
-		}
-	}()
-
-	return w, err
+	go d.receiveEnd(ctx, client)
+	return d, err
 
 }
 
-func (w *db) Close() {
-	close(w.end)
+func (d *db) receiveEnd(ctx context.Context, client *mongo.Client) {
+	<-d.end
+	if err := client.Disconnect(ctx); err != nil {
+		d.Fatal(err)
+	}
 }
 
-func (w *db) GetPage(title string) (page model.Page, err error) {
+func (d *db) Close() {
+	d.Info("Close Database connection")
+	close(d.end)
+}
 
-	cursor, err := w.page.Find(context.TODO(), bson.D{{w.PageCollection.Title, title}})
+func (d *db) GetPage(title string) (page model.Page, err error) {
+
+	cursor, err := d.page.Find(context.TODO(), bson.D{{d.PageCollection.Title, title}})
 
 	if err == nil && cursor.Next(context.TODO()) {
 		page.Key = cursor.Current.Index(0).Value().String()
 		page.Content = cursor.Current.Index(1).Value().String()
+		d.Debugf("Get Page '%s'", title)
+		return
 	}
+
+	d.Error(err)
 
 	return
 
 }
 
-func (w *db) InitPage(title string, content string) error {
-	_, err := w.page.InsertOne(context.TODO(), bson.D{{w.PageCollection.Title, title}, {w.PageCollection.Body, content}})
+func (d *db) InitPage(title string, content string) error {
+	_, err := d.page.InsertOne(context.TODO(), bson.D{{d.PageCollection.Title, title}, {d.PageCollection.Body, content}})
+	d.Debugf("Initialize Page '%s'", title)
 	return err
 }
 
-func (w *db) SetContent(title string, content string) error {
-	_, err := w.page.UpdateByID(context.TODO(), title, bson.D{{"$set", bson.D{{w.PageCollection.Body, content}}}})
+func (d *db) SetContent(title string, content string) error {
+	_, err := d.page.UpdateByID(context.TODO(), title, bson.D{{"$set", bson.D{{d.PageCollection.Body, content}}}})
+	d.Debugf("Amend Page '%s'", title)
 	return err
 }
