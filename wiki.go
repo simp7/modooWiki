@@ -14,36 +14,39 @@ type wiki struct {
 	*iris.Application
 }
 
-func Init(conf config.Config) (w *wiki, err error) {
+func Init(conf config.Config, level golog.Level) (w *wiki, err error) {
 
 	w = new(wiki)
 
-	w.db, err = db.New(conf.DB)
+	w.db, err = db.New(conf.DB, level)
 	if err != nil {
 		return
 	}
 
-	w.Logger().Level = golog.DebugLevel
 	w.Web = conf.Web
 	w.Application = iris.New()
+	w.Logger().Level = level
 
 	return
 
 }
 
 func (w *wiki) Start() error {
+
 	w.Get("/page/{key}", w.GetPage)
 	w.Put("/page/{key}", w.PutPage)
+
 	return w.Listen(w.Path())
+
 }
 
-func (w *wiki) End() {
+func (w *wiki) Close() {
 	w.db.Close()
+	w.Logger().Info("Closing wiki web server...")
 }
 
 func (w *wiki) CommonLog(ctx context.Context) {
-	w.Logger().Infof("%s", ctx.RemoteAddr())
-	w.Logger().Debugf("%s", ctx.FullRequestURI())
+	w.Logger().Debugf("%s-> %s", ctx.RemoteAddr(), ctx.FullRequestURI())
 }
 
 func (w *wiki) GetPage(ctx context.Context) {
@@ -54,6 +57,7 @@ func (w *wiki) GetPage(ctx context.Context) {
 	page, err := w.db.GetPage(key)
 	if err == nil {
 		_, err = ctx.WriteString(page.Content)
+		w.Logger().Debug("Finish getting page")
 	}
 
 	if err != nil {
@@ -73,9 +77,15 @@ func (w *wiki) PutPage(ctx context.Context) {
 		w.Logger().Error(err)
 	}
 
+	w.Logger().Debug("Finish putting page")
+
 }
 
 func (w *wiki) InitPage(key string, content string) (err error) {
+
 	err = w.db.InitPage(key, content)
+	w.Logger().Debug("Finish initializing page")
+
 	return
+
 }

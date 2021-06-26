@@ -7,21 +7,26 @@ import (
 
 func main() {
 
+	level := golog.DebugLevel
+
+	logger := golog.New()
+	logger.Level = level
+
 	conf, err := config.Get()
 	if err != nil {
-		golog.Fatal(err)
+		logger.Fatal(err)
 	}
 
-	w, err := Init(conf)
+	w, err := Init(conf, level)
 	if err != nil {
-		golog.Fatal(err)
+		logger.Fatal(err)
 	}
 
 	err = w.Start()
 	if err != nil {
-		w.Logger().Info(err)
+		logger.Info(err)
 	}
 
-	defer w.End()
+	defer w.Close()
 
 }
