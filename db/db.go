@@ -67,7 +67,7 @@ func (d *db) GetPage(title string) (page model.Page, err error) {
 		return
 	}
 
-	d.Error(err)
+	d.Error("Page not found.")
 
 	return
 
