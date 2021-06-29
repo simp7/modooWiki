@@ -14,5 +14,5 @@ func NewPage(key string) Page {
 
 func (p Page) String() (result string) {
 	result = wrapHeading(0, p.Root.Title)
-	return p.Root.FormatChild(0, "")
+	return p.Root.formatChild(0, "")
 }

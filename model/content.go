@@ -1,6 +1,9 @@
 package model
 
-import "fmt"
+import (
+	"errors"
+	"fmt"
+)
 
 type Block struct {
 	Title    string
@@ -9,24 +12,25 @@ type Block struct {
 	Children []Block
 }
 
-func (b *Block) FormatChild(depth int, prefix string) (result string) {
+func (b *Block) formatChild(depth int, parentPrefix string) (result string) {
 
 	for i, v := range b.Children {
-		result += b.formatTitle(depth, prefix+string(i+1), i)
-		result += b.Content
-		result += v.FormatChild(depth+1, prefix+string(i+1))
+		prefix := titlePrefix(parentPrefix, i)
+		result += v.formatTitle(depth, prefix)
+		result += v.formatContent()
+		result += v.formatChild(depth+1, prefix)
 	}
 
 	return
 
 }
 
-func (b *Block) titlePrefix(parentPrefix string, idx int) string {
-	return parentPrefix + string(idx+1) + "."
+func titlePrefix(parentPrefix string, num int) string {
+	return parentPrefix + string(num) + "."
 }
 
-func (b *Block) formatTitle(depth int, prefix string, idx int) string {
-	return wrapHeading(depth, prefix+string(idx+1)+".")
+func (b *Block) formatTitle(depth int, prefix string) string {
+	return wrapHeading(depth, prefix+" "+b.Title)
 }
 
 func wrapHeading(depth int, text string) string {
@@ -36,17 +40,40 @@ func wrapHeading(depth int, text string) string {
 func heading(depth int) (heading string) {
 
 	heading = "h"
-
 	if depth > 5 {
 		heading += "6"
 	} else {
 		heading += string(depth)
 	}
+
 	return
 
 }
 
-func (b *Block) Insert(child Block) {
+func (b *Block) formatContent() string {
+	return "<body>" + b.Content + "</body>"
+}
+
+func (b *Block) Append(child Block) {
 	child.Parent = b
 	b.Children = append(b.Children, child)
+}
+
+func (b *Block) Insert(child Block, idx int) error {
+
+	child.Parent = b
+
+	if idx < len(b.Children) {
+		b.Children = append(b.Children[:idx+1], b.Children[idx:]...)
+		b.Children[idx] = child
+		return nil
+	}
+
+	if idx == len(b.Children) {
+		b.Append(child)
+		return nil
+	}
+
+	return errors.New("index out of range when inserting to children")
+
 }

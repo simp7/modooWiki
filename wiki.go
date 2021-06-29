@@ -56,7 +56,7 @@ func (w *wiki) GetPage(ctx context.Context) {
 
 	page, err := w.db.GetPage(key)
 	if err == nil {
-		_, err = ctx.WriteString(page.Content)
+		_, err = ctx.WriteString(page.String())
 		w.Logger().Debug("Finish getting page")
 	}
 
