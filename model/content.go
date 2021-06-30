@@ -26,7 +26,7 @@ func (b *Block) formatChild(depth int, parentPrefix string) (result string) {
 }
 
 func titlePrefix(parentPrefix string, num int) string {
-	return parentPrefix + string(num) + "."
+	return fmt.Sprintf("%s%d.", parentPrefix, num)
 }
 
 func (b *Block) formatTitle(depth int, prefix string) string {
@@ -39,11 +39,10 @@ func wrapHeading(depth int, text string) string {
 
 func heading(depth int) (heading string) {
 
-	heading = "h"
 	if depth > 5 {
-		heading += "6"
+		heading = "h6"
 	} else {
-		heading += string(depth)
+		heading = fmt.Sprintf("h%d", depth+1)
 	}
 
 	return

@@ -1,7 +1,7 @@
 package config
 
 type PageCollection struct {
-	Name  string `json:"name"`
-	Title string `json:"title"`
-	Body  string `json:"body"`
+	Name string `json:"name"`
+	Key  string `json:"title"`
+	Page string `json:"page"`
 }

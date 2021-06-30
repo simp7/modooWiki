@@ -58,11 +58,11 @@ func (d *db) Close() {
 
 func (d *db) GetPage(title string) (page model.Page, err error) {
 
-	cursor, err := d.page.Find(context.TODO(), bson.D{{d.PageCollection.Title, title}})
+	cursor, err := d.page.Find(context.TODO(), bson.D{{d.PageCollection.Key, title}})
 
 	if err == nil && cursor.Next(context.TODO()) {
-		page.Key = cursor.Current.Index(0).Value().String()
-		page.Content = cursor.Current.Index(1).Value().String()
+		page.Root.Title = cursor.Current.Index(0).Value().String()
+		page.Root.Content = cursor.Current.Index(1).Value().String()
 		d.Debugf("Get Page '%s'", title)
 		return
 	}
@@ -73,14 +73,15 @@ func (d *db) GetPage(title string) (page model.Page, err error) {
 
 }
 
-func (d *db) InitPage(title string, content string) error {
-	_, err := d.page.InsertOne(context.TODO(), bson.D{{d.PageCollection.Title, title}, {d.PageCollection.Body, content}})
+func (d *db) InitPage(title string) error {
+	page := model.NewPage(title)
+	_, err := d.page.InsertOne(context.TODO(), bson.D{{d.PageCollection.Key, title}, {d.PageCollection.Page, page}})
 	d.Debugf("Initialize Page '%s'", title)
 	return err
 }
 
-func (d *db) SetContent(title string, content string) error {
-	_, err := d.page.UpdateByID(context.TODO(), title, bson.D{{"$set", bson.D{{d.PageCollection.Body, content}}}})
-	d.Debugf("Amend Page '%s'", title)
+func (d *db) SetContent(page model.Page) error {
+	_, err := d.page.UpdateByID(context.TODO(), page.Key(), bson.D{{"$set", bson.D{{d.PageCollection.Page, page}}}})
+	d.Debugf("Amend Page '%s'", page.Key())
 	return err
 }
