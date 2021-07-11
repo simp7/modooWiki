@@ -1,31 +1,33 @@
 package main
 
 import (
-	"github.com/kataras/golog"
-	"github.com/kataras/iris/v12"
-	"github.com/kataras/iris/v12/context"
+	"github.com/gin-gonic/gin"
+	"github.com/google/logger"
+	"io"
 	"modoowiki/db"
 	"modoowiki/model/config"
+	"os"
 )
 
 type wiki struct {
 	db DB
 	config.Web
-	*iris.Application
+	*logger.Logger
+	*gin.Engine
 }
 
-func Init(conf config.Config, level golog.Level) (w *wiki, err error) {
+func Init(conf config.Config, lg *logger.Logger) (w *wiki, err error) {
 
 	w = new(wiki)
 
-	w.db, err = db.New(conf.DB, level)
+	w.db, err = db.New(conf.DB, lg)
 	if err != nil {
 		return
 	}
 
 	w.Web = conf.Web
-	w.Application = iris.New()
-	w.Logger().Level = level
+	w.Engine = gin.New()
+	w.Logger = lg
 
 	return
 
@@ -33,58 +35,92 @@ func Init(conf config.Config, level golog.Level) (w *wiki, err error) {
 
 func (w *wiki) Start() error {
 
-	w.Get("/page/{key}", w.GetPage)
-	w.Put("/page/{key}", w.PutPage)
+	w.GET("/page/:key", w.GetPage)
+	w.PUT("/page/:key", w.PutPage)
 
-	return w.Listen(w.Path())
+	return w.Run(w.Path())
 
 }
 
 func (w *wiki) Close() {
 	w.db.Close()
-	w.Logger().Info("Closing wiki web server...")
+	w.Info("Closing wiki web server...")
 }
 
-func (w *wiki) CommonLog(ctx context.Context) {
-	w.Logger().Debugf("%s-> %s", ctx.RemoteAddr(), ctx.FullRequestURI())
+func (w *wiki) CommonLog(ctx *gin.Context) {
+	ip, ok := ctx.RemoteIP()
+	if ok {
+		w.Info("%s-> %s", ip, ctx.Request.URL)
+	}
 }
 
-func (w *wiki) GetPage(ctx context.Context) {
+func (w *wiki) GetPage(ctx *gin.Context) {
 
 	w.CommonLog(ctx)
-	key := ctx.Params().Get("key")
+	key, ok := ctx.Params.Get("key")
 
-	page, err := w.db.GetPage(key)
-	if err == nil {
-		_, err = ctx.WriteString(page.String())
-		w.Logger().Debug("Finish getting page")
+	if ok {
+		page, err := w.db.GetPage(key)
+
+		if err == nil {
+			_, err = ctx.Writer.WriteString(page.String())
+			w.Info("Finish getting page")
+		}
+
+		if err != nil {
+			w.Error(err)
+		}
+		return
+
 	}
 
-	if err != nil {
-		w.Logger().Error(err)
+	if indexPage, err := w.IndexPage(); err == nil {
+		_, err = ctx.Writer.Write(indexPage)
+		if err != nil {
+			w.Error(err)
+		}
 	}
+
+	return
 
 }
 
-func (w *wiki) PutPage(ctx context.Context) {
+func (w *wiki) PutPage(ctx *gin.Context) {
 
 	w.CommonLog(ctx)
-	key := ctx.Params().Get("key")
+	key, ok := ctx.Params.Get("key")
 
-	err := w.db.InitPage(key)
-	if err != nil {
-		w.Logger().Error(err)
+	if ok {
+
+		err := w.db.InitPage(key)
+		if err != nil {
+			w.Error(err)
+		}
+
+		w.Info("Finish putting page")
+
 	}
-
-	w.Logger().Debug("Finish putting page")
 
 }
 
 func (w *wiki) InitPage(key string) (err error) {
 
 	err = w.db.InitPage(key)
-	w.Logger().Debug("Finish initializing page")
+	w.Info("Finish initializing page")
 
 	return
+
+}
+
+func (w *wiki) IndexPage() ([]byte, error) {
+
+	var err error
+	var file io.Reader
+
+	if file, err = os.Open("indexPage.html"); err == nil {
+		return io.ReadAll(file)
+	}
+
+	return nil, err
 
 }

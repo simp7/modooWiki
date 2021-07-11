@@ -3,6 +3,7 @@ package model
 import (
 	"errors"
 	"fmt"
+	"strings"
 )
 
 type Block struct {
@@ -33,8 +34,15 @@ func (b *Block) formatTitle(depth int, prefix string) string {
 	return wrapHeading(depth, prefix+" "+b.Title)
 }
 
+func trim(text string) string {
+	result := text
+	result = strings.TrimPrefix(result, "\"")
+	result = strings.TrimSuffix(result, "\"")
+	return result
+}
+
 func wrapHeading(depth int, text string) string {
-	return fmt.Sprintf("<%s>%s</%s>", heading(depth), text, heading(depth))
+	return fmt.Sprintf("<%s>%s</%s>", heading(depth), trim(text), heading(depth))
 }
 
 func heading(depth int) (heading string) {

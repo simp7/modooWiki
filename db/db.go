@@ -2,7 +2,7 @@ package db
 
 import (
 	"context"
-	"github.com/kataras/golog"
+	"github.com/google/logger"
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
@@ -16,16 +16,15 @@ type db struct {
 	*mongo.Database
 	page *mongo.Collection
 	end  chan struct{}
-	*golog.Logger
+	*logger.Logger
 }
 
-func New(conf config.DB, level golog.Level) (*db, error) {
+func New(conf config.DB, lg *logger.Logger) (*db, error) {
 
 	d := new(db)
 	d.DB = conf
 
-	d.Logger = golog.New()
-	d.Logger.Level = level
+	d.Logger = lg
 
 	d.end = make(chan struct{})
 
@@ -63,7 +62,7 @@ func (d *db) GetPage(title string) (page model.Page, err error) {
 	if err == nil && cursor.Next(context.TODO()) {
 		page.Root.Title = cursor.Current.Index(0).Value().String()
 		page.Root.Content = cursor.Current.Index(1).Value().String()
-		d.Debugf("Get Page '%s'", title)
+		d.Infof("Get Page '%s'", title)
 		return
 	}
 
@@ -76,12 +75,12 @@ func (d *db) GetPage(title string) (page model.Page, err error) {
 func (d *db) InitPage(title string) error {
 	page := model.NewPage(title)
 	_, err := d.page.InsertOne(context.TODO(), bson.D{{d.PageCollection.Key, title}, {d.PageCollection.Page, page}})
-	d.Debugf("Initialize Page '%s'", title)
+	d.Infof("Initialize Page '%s'", title)
 	return err
 }
 
 func (d *db) SetContent(page model.Page) error {
 	_, err := d.page.UpdateByID(context.TODO(), page.Key(), bson.D{{"$set", bson.D{{d.PageCollection.Page, page}}}})
-	d.Debugf("Amend Page '%s'", page.Key())
+	d.Infof("Amend Page '%s'", page.Key())
 	return err
 }
