@@ -1,23 +1,22 @@
 package main
 
 import (
-	"github.com/kataras/golog"
+	"github.com/google/logger"
 	"modoowiki/model/config"
+	"os"
 )
 
 func main() {
 
-	level := golog.DebugLevel
-
-	logger := golog.New()
-	logger.Level = level
+	lg := logger.Init("wiki", true, false, os.Stdout)
+	lg.SetLevel(logger.Level(1))
 
 	conf, err := config.Get()
 	if err != nil {
 		logger.Fatal(err)
 	}
 
-	w, err := Init(conf, level)
+	w, err := Init(conf, lg)
 	if err != nil {
 		logger.Fatal(err)
 	}
