@@ -56,7 +56,7 @@ func (w *wiki) GetPage(ctx context.Context) {
 
 	page, err := w.db.GetPage(key)
 	if err == nil {
-		_, err = ctx.WriteString(page.Content)
+		_, err = ctx.WriteString(page.String())
 		w.Logger().Debug("Finish getting page")
 	}
 
@@ -70,9 +70,8 @@ func (w *wiki) PutPage(ctx context.Context) {
 
 	w.CommonLog(ctx)
 	key := ctx.Params().Get("key")
-	content := ctx.PostValue("content")
 
-	err := w.db.InitPage(key, content)
+	err := w.db.InitPage(key)
 	if err != nil {
 		w.Logger().Error(err)
 	}
@@ -81,9 +80,9 @@ func (w *wiki) PutPage(ctx context.Context) {
 
 }
 
-func (w *wiki) InitPage(key string, content string) (err error) {
+func (w *wiki) InitPage(key string) (err error) {
 
-	err = w.db.InitPage(key, content)
+	err = w.db.InitPage(key)
 	w.Logger().Debug("Finish initializing page")
 
 	return
