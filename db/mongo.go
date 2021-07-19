@@ -19,7 +19,7 @@ type db struct {
 	*logger.Logger
 }
 
-func New(conf config.DB, lg *logger.Logger) (*db, error) {
+func Mongo(conf config.DB, lg *logger.Logger) (*db, error) {
 
 	d := new(db)
 	d.DB = conf
@@ -82,5 +82,10 @@ func (d *db) InitPage(title string) error {
 func (d *db) SetContent(page model.Page) error {
 	_, err := d.page.UpdateByID(context.TODO(), page.Key(), bson.D{{"$set", bson.D{{d.PageCollection.Page, page}}}})
 	d.Infof("Amend Page '%s'", page.Key())
+	return err
+}
+
+func (d *db) DeletePage(title string) error {
+	_, err := d.page.DeleteOne(context.TODO(), bson.D{{d.PageCollection.Key, title}})
 	return err
 }

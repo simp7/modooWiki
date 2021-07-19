@@ -1,13 +1,16 @@
 package main
 
 import (
+	"embed"
 	"github.com/gin-gonic/gin"
 	"github.com/google/logger"
-	"io"
 	"modoowiki/db"
 	"modoowiki/model/config"
-	"os"
+	"net/http"
 )
+
+//go:embed templates
+var asset embed.FS
 
 type wiki struct {
 	db DB
@@ -20,7 +23,7 @@ func Init(conf config.Config, lg *logger.Logger) (w *wiki, err error) {
 
 	w = new(wiki)
 
-	w.db, err = db.New(conf.DB, lg)
+	w.db, err = db.Mongo(conf.DB, lg)
 	if err != nil {
 		return
 	}
@@ -35,8 +38,12 @@ func Init(conf config.Config, lg *logger.Logger) (w *wiki, err error) {
 
 func (w *wiki) Start() error {
 
+	w.GET("/", w.Index)
 	w.GET("/page/:key", w.GetPage)
 	w.PUT("/page/:key", w.PutPage)
+	w.DELETE("/page/:key", w.DeletePage)
+
+	w.LoadHTMLGlob("templates/html/*")
 
 	return w.Run(w.Path())
 
@@ -50,7 +57,7 @@ func (w *wiki) Close() {
 func (w *wiki) CommonLog(ctx *gin.Context) {
 	ip, ok := ctx.RemoteIP()
 	if ok {
-		w.Info("%s-> %s", ip, ctx.Request.URL)
+		w.Infof("%s-> %s", ip, ctx.Request.URL)
 	}
 }
 
@@ -74,15 +81,6 @@ func (w *wiki) GetPage(ctx *gin.Context) {
 
 	}
 
-	if indexPage, err := w.IndexPage(); err == nil {
-		_, err = ctx.Writer.Write(indexPage)
-		if err != nil {
-			w.Error(err)
-		}
-	}
-
-	return
-
 }
 
 func (w *wiki) PutPage(ctx *gin.Context) {
@@ -103,6 +101,19 @@ func (w *wiki) PutPage(ctx *gin.Context) {
 
 }
 
+func (w *wiki) DeletePage(ctx *gin.Context) {
+	w.CommonLog(ctx)
+	key, ok := ctx.Params.Get("key")
+
+	if ok {
+		err := w.db.DeletePage(key)
+		if err != nil {
+			w.Error(err)
+		}
+	}
+
+}
+
 func (w *wiki) InitPage(key string) (err error) {
 
 	err = w.db.InitPage(key)
@@ -112,15 +123,6 @@ func (w *wiki) InitPage(key string) (err error) {
 
 }
 
-func (w *wiki) IndexPage() ([]byte, error) {
-
-	var err error
-	var file io.Reader
-
-	if file, err = os.Open("indexPage.html"); err == nil {
-		return io.ReadAll(file)
-	}
-
-	return nil, err
-
+func (w *wiki) Index(ctx *gin.Context) {
+	ctx.HTML(http.StatusOK, "index.html", gin.H{"title": "Home"})
 }
